@@ -14,6 +14,7 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+# Redeploy marker after ui-enhancements cache-key correction in the source repository.
 jobs:
   deploy:
     environment:
