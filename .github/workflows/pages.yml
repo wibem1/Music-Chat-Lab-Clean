@@ -21,14 +21,44 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout clean repository
         uses: actions/checkout@v4
+      - name: Checkout frozen Music Chat Lab source
+        uses: actions/checkout@v4
+        with:
+          repository: wibem1/Music-Chat-Lab-Pages
+          ref: main
+          path: site
+      - name: Build clean v1.2.4 site
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf site/.git site/.github
+          rm -f site/service-worker.js
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('site/index.html')
+          s=p.read_text()
+          marker="<script>\n// Emergency stabilization for v1.2.4: remove any previously installed Music Chat Lab"
+          if marker in s:
+              start=s.index(marker)
+              end=s.index('</script>',start)+len('</script>')
+              s=s[:start]+s[end:]
+          p.write_text(s)
+          u=Path('site/ui-enhancements.js')
+          t=u.read_text().replace("const VERSION='1.2.2';","const VERSION='1.2.4';")
+          u.write_text(t)
+          PY
+          test ! -e site/service-worker.js
+          ! grep -q "serviceWorker" site/index.html
+          grep -q "v1.2.4" site/index.html
+          grep -q "const VERSION='1.2.4'" site/ui-enhancements.js
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: site
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
